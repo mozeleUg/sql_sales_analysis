@@ -1,0 +1,148 @@
+1.  Find the top 10 accounts by sales
+
+SELECT a.name AS account_name, SUM(o.total_amt_usd) AS total_sales
+FROM accounts a 
+JOIN orders o
+ON a.id = o.account_id
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 10;
+
+
+2. Which 5 sales representatives brought in the least sales in the first 13 months since the company opened? 
+
+WITH min_order_date AS (
+	SELECT MIN(occurred_at) AS min_date
+	FROM orders
+	)
+	
+	SELECT s.name AS rep_name,
+			SUM(o.total_amt_usd) AS total_sales_amt
+	FROM sales_reps s
+	JOIN accounts a
+	ON s.id = a.sales_rep_id
+	JOIN orders o
+	ON a.id = o.account_id
+	WHERE o.occurred_at >= (
+								SELECT min_date FROM min_order_date
+							) 	
+							AND o.occurred_at < 	
+							(
+								SELECT min_date + interval '13 months' FROM min_order_date
+							)
+	GROUP BY 1
+	ORDER BY 2 ASC, 2 DESC
+	LIMIT 5;
+
+
+3. Find out the accounts that brought in the most revenue in the last 30 days and the number of orders per account
+
+SELECT a.name, 
+	   COUNT(o.id) AS no_orders,
+	   SUM(o.total_amt_usd) AS total_revenue
+FROM accounts a
+JOIN orders o 
+ON a.id = o.account_id 
+WHERE o.occurred_at >= (	
+						SELECT MAX(occurred_at) - interval '30 day' FROM orders)
+	  AND o.occurred_at < (SELECT MAX(occurred_at) FROM orders)
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 5;
+
+
+4. Which paper type had the most ordered quaninty?
+
+SELECT 'Standard Paper' AS paper_type, SUM(standard_qty) AS total_qty FROM Orders
+UNION ALL
+SELECT 'Gloss Paper', SUM(gloss_qty) FROM Orders
+UNION ALL
+SELECT 'Poster Paper', SUM(poster_qty) FROM Orders
+ORDER BY total_qty DESC
+LIMIT 1;
+
+5. List down the accounts without orders? 
+
+SELECT a.name AS account_name
+FROM accounts a
+JOIN orders o
+ON a.id = o.account_id
+WHERE a.id IS NULL;
+
+OR 
+
+SELECT a.name AS account_name
+FROM accounts a
+JOIN orders o
+ON a.id = o.account_id
+WHERE a.id NOT IN (SELECT DISTINCT o.account_id FROM orders)
+
+
+
+6. What is the annual sales trend?
+
+SELECT date_part('year', occurred_at) AS calendar_year, SUM(total_amt_usd) AS total_sales
+FROM orders
+GROUP BY 1
+ORDER BY 1;
+
+7. What is the regional sales trend per year?
+
+SELECT date_part('year', occurred_at) AS calendar_year, SUM(total_amt_usd) AS total_sales
+FROM orders
+GROUP BY 1
+ORDER BY 1;
+
+
+8. Find the top sales reps per region 
+
+WITH regional_sales AS (
+	SELECT s.name AS rep_name, r.name AS region, SUM(o.total_amt_usd) AS total_sales
+	FROM sales_reps s
+	JOIN region r
+	ON s.region_id = r.id
+	JOIN accounts a
+	ON s.id = a.sales_rep_id
+	JOIN orders o 
+	ON a.id = o.account_id
+	GROUP BY 1,2 
+	ORDER BY 3 DESC ), 
+	
+	ranked_sales AS (SELECT rep_name, region, total_sales,
+	   RANK() OVER(PARTITION BY region ORDER BY total_sales DESC) AS rnk
+	FROM regional_sales)
+	
+SELECT rep_name, region, total_sales
+FROM ranked_sales 
+WHERE rnk=1 
+ORDER BY 3 DESC;
+
+
+9. Find all accounts without websites
+
+SELECT * 
+FROM accounts
+WHERE website IS NULL;
+
+
+
+10. Find out the total quantity of paper order
+
+SELECT SUM(standard_qty + gloss_qty + poster_qty) AS total_quantity
+FROM Orders;
+
+
+
+11. What is the most common channel used by customers?
+
+SELECT channel, COUNT(*)
+FROM web_events
+GROUP BY 1
+ORDER BY 2 DESC;
+
+
+12. 
+
+
+
+
